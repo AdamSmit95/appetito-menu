@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#FF6B00">
+<meta name="description" content="Ресторан Аппетито — электронное меню">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Аппетито — Меню</title>
+
+<!-- ✅ SUPABASE SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+/* ===================== VARIABLES ===================== */
+:root {
+  --orange: #FF6B00;
+  --orange-dark: #D95800;
+  --orange-light: #FF8C33;
+  --orange-pale: #FFF3E8;
+  --orange-pale2: #FFE8CC;
+  --brown: #2D1200;
+  --white: #FFFDF9;
+  --gray: #999;
+  --gray-light: #f5f5f0;
+  --shadow: 0 4px 24px rgba(255,107,0,0.13);
+  --shadow-strong: 0 8px 32px rgba(255,107,0,0.22);
+  --radius: 18px;
+  --radius-sm: 12px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Nunito', sans-serif;
+  background: var(--white);
+  color: var(--brown);
+  min-height: 100vh;
+  overflow-x: hidden;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+/* ===================== HEADER ===================== */
+header {
+  background: linear-gradient(135deg, #FF7A00 0%, #D95800 55%, #FF6B00 100%);
+  padding: 16px 16px 14px;
+  position: sticky; top: 0; z-index: 100;
+  box-shadow: 0 4px 24px rgba(200,80,0,0.35);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.logo-wrap { display: flex; align-items: center; gap: 11px; }
+.logo-icon {
+  width: 48px; height: 48px;
+  background: white; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.18);
+  flex-shrink: 0;
+}
+.logo-name {
+  font-family: 'Playfair Display', serif;
+  color: white; font-size: 24px; font-weight: 900;
+  line-height: 1; letter-spacing: 0.5px;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+.logo-tagline { color: rgba(255,255,255,0.82); font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
+.cart-btn {
+  background: white; border: none; border-radius: 50px;
+  padding: 9px 16px; color: var(--orange);
+  font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 14px;
+  cursor: pointer; display: flex; align-items: center; gap: 7px;
+  box-shadow: 0 3px 14px rgba(0,0,0,0.18);
+  transition: transform 0.15s, box-shadow 0.15s;
+  flex-shrink: 0;
+}
+.cart-btn:active { transform: scale(0.95); }
+.cart-count {
+  background: var(--orange); color: white;
+  border-radius: 50%; width: 21px; height: 21px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 900;
+  transition: transform 0.2s;
+}
+.cart-count.bump { transform: scale(1.4); }
+
+/* ===================== CATEGORIES ===================== */
+.cats-wrap {
+  background: white;
+  border-bottom: 1px solid rgba(255,107,0,0.1);
+  position: sticky; top: 78px; z-index: 90;
+}
+.categories {
+  display: flex; gap: 8px;
+  padding: 12px 14px;
+  overflow-x: auto; scrollbar-width: none;
+}
+.categories::-webkit-scrollbar { display: none; }
+.cat-btn {
+  flex-shrink: 0; border: 2px solid transparent;
+  background: var(--orange-pale);
+  color: var(--brown); border-radius: 50px;
+  padding: 7px 14px;
+  font-family: 'Nunito', sans-serif; font-size: 12px; font-weight: 800;
+  cursor: pointer; transition: all 0.2s; white-space: nowrap;
+}
+.cat-btn.active {
+  background: var(--orange); color: white;
+  border-color: var(--orange);
+  box-shadow: 0 3px 12px rgba(255,107,0,0.35);
+}
+
+/* ===================== REG BANNER ===================== */
+.reg-banner {
+  background: linear-gradient(135deg, var(--orange-pale), var(--orange-pale2));
+  border: 2px dashed rgba(255,107,0,0.3);
+  margin: 14px 14px 0; border-radius: var(--radius);
+  padding: 13px 15px; display: flex; align-items: center; gap: 12px;
+  cursor: pointer; transition: box-shadow 0.2s, transform 0.15s;
+}
+.reg-banner:active { transform: scale(0.98); }
+.reg-banner-icon { font-size: 26px; }
+.reg-banner-text { flex: 1; }
+.reg-banner-text strong { display: block; font-size: 13px; font-weight: 800; color: var(--orange-dark); }
+.reg-banner-text span { font-size: 11px; color: var(--gray); }
+.reg-banner-arrow { color: var(--orange); font-size: 22px; font-weight: 900; }
+.user-chip {
+  margin: 14px 14px 0;
+  background: linear-gradient(135deg, var(--orange), var(--orange-dark));
+  border-radius: 50px; padding: 10px 16px;
+  display: flex; align-items: center; gap: 10px; color: white;
+}
+.user-chip .chip-icon { font-size: 18px; }
+.user-chip .chip-name { font-size: 13px; font-weight: 800; flex: 1; }
+.user-chip .chip-phone { font-size: 11px; opacity: 0.85; }
+.user-chip .chip-edit { background: rgba(255,255,255,0.25); border: none; border-radius: 50px; padding: 4px 10px; color: white; font-size: 11px; font-weight: 700; cursor: pointer; font-family: 'Nunito', sans-serif; }
+
+/* ===================== LOADER ===================== */
+.loader-wrap {
+  padding: 60px 0; text-align: center;
+}
+.loader {
+  width: 40px; height: 40px;
+  border: 4px solid var(--orange-pale);
+  border-top-color: var(--orange);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  margin: 0 auto 12px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loader-text { color: var(--gray); font-size: 13px; font-weight: 600; }
+.error-wrap {
+  padding: 40px 20px; text-align: center;
+}
+.error-wrap .err-icon { font-size: 40px; margin-bottom: 10px; }
+.error-wrap p { color: var(--gray); font-size: 14px; line-height: 1.5; }
+.error-wrap .retry-btn {
+  margin-top: 14px; background: var(--orange); color: white;
+  border: none; border-radius: 50px; padding: 10px 24px;
+  font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 14px;
+  cursor: pointer;
+}
+
+/* ===================== MENU ===================== */
+.menu-section { padding: 14px 14px 110px; }
+.section-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 20px; font-weight: 700; color: var(--brown);
+  margin-bottom: 14px;
+  display: flex; align-items: center; gap: 10px;
+}
+.section-title::after {
+  content: ''; flex: 1; height: 2px;
+  background: linear-gradient(to right, rgba(255,107,0,0.4), transparent);
+  border-radius: 2px;
+}
+.menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.menu-card {
+  background: white; border-radius: var(--radius);
+  overflow: hidden; box-shadow: var(--shadow);
+  border: 1px solid rgba(255,107,0,0.07);
+  transition: transform 0.2s, box-shadow 0.2s;
+  position: relative; cursor: pointer;
+  animation: fadeIn 0.4s ease both;
+}
+@keyframes fadeIn { from { opacity:0; transform: translateY(12px); } to { opacity:1; transform: none; } }
+.menu-card:nth-child(1){animation-delay:0s}
+.menu-card:nth-child(2){animation-delay:0.05s}
+.menu-card:nth-child(3){animation-delay:0.1s}
+.menu-card:nth-child(4){animation-delay:0.15s}
+.menu-card:nth-child(5){animation-delay:0.2s}
+.menu-card:nth-child(6){animation-delay:0.25s}
+.menu-card:active { transform: scale(0.97); }
+.card-img-wrap { overflow: hidden; position: relative; }
+.card-img-wrap img {
+  width: 100%; height: 130px; object-fit: cover;
+  display: block; transition: transform 0.35s;
+  background: var(--orange-pale);
+}
+.menu-card:hover .card-img-wrap img { transform: scale(1.06); }
+.badge-new {
+  position: absolute; top: 8px; left: 8px;
+  color: white; font-size: 10px; font-weight: 900;
+  padding: 3px 9px; border-radius: 50px;
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.badge-new.hot { background: #e53935; }
+.badge-new.new { background: var(--orange); }
+.card-body { padding: 10px 10px 12px; }
+.card-name { font-size: 13px; font-weight: 800; color: var(--brown); line-height: 1.3; margin-bottom: 4px; }
+.card-desc {
+  font-size: 11px; color: var(--gray); line-height: 1.4; margin-bottom: 8px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.card-footer { display: flex; align-items: center; justify-content: space-between; }
+.card-price { font-size: 15px; font-weight: 900; color: var(--orange); }
+.add-btn {
+  background: var(--orange); border: none; border-radius: 50%;
+  width: 30px; height: 30px; color: white; font-size: 22px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; box-shadow: 0 3px 10px rgba(255,107,0,0.4);
+  transition: all 0.15s; flex-shrink: 0; line-height: 1;
+}
+.add-btn:active { transform: scale(0.88); background: var(--orange-dark); }
+.in-cart-badge {
+  position: absolute; top: 8px; right: 8px;
+  background: var(--orange); color: white;
+  border-radius: 50%; width: 22px; height: 22px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 900;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+/* ===================== MODALS ===================== */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.5); z-index: 200;
+  backdrop-filter: blur(5px);
+  align-items: flex-end; justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: white; border-radius: 26px 26px 0 0;
+  width: 100%; max-width: 480px; max-height: 92vh;
+  overflow-y: auto; padding: 0 20px 36px;
+  animation: slideUp 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.modal-handle {
+  width: 40px; height: 4px; background: #e0e0e0;
+  border-radius: 2px; margin: 14px auto 18px;
+}
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 20px;
+}
+.modal-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 22px; font-weight: 700; color: var(--brown);
+}
+.modal-close {
+  background: var(--orange-pale); border: none; border-radius: 50%;
+  width: 34px; height: 34px; font-size: 20px; cursor: pointer;
+  color: var(--orange); display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s;
+}
+.modal-close:active { background: var(--orange-pale2); }
+
+/* FORM */
+.form-group { margin-bottom: 15px; }
+.form-group label { display: block; font-size: 12px; font-weight: 800; color: var(--brown); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+.form-group input {
+  width: 100%; padding: 13px 16px;
+  border: 2px solid rgba(255,107,0,0.18);
+  border-radius: var(--radius-sm);
+  font-family: 'Nunito', sans-serif; font-size: 15px; font-weight: 600;
+  color: var(--brown); outline: none; background: var(--orange-pale);
+  transition: border-color 0.2s, background 0.2s;
+}
+.form-group input:focus { border-color: var(--orange); background: white; }
+.form-hint { font-size: 11px; color: var(--gray); margin-top: 5px; }
+.btn-primary {
+  width: 100%; padding: 15px;
+  background: linear-gradient(135deg, var(--orange-light), var(--orange-dark));
+  color: white; border: none; border-radius: 14px;
+  font-family: 'Nunito', sans-serif; font-size: 16px; font-weight: 900;
+  cursor: pointer; box-shadow: 0 5px 18px rgba(255,107,0,0.4);
+  transition: opacity 0.15s, transform 0.15s; margin-top: 6px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn-primary:active { opacity: 0.9; transform: scale(0.98); }
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-secondary {
+  width: 100%; padding: 13px;
+  background: var(--orange-pale); color: var(--orange);
+  border: 2px solid rgba(255,107,0,0.2); border-radius: 14px;
+  font-family: 'Nunito', sans-serif; font-size: 14px; font-weight: 800;
+  cursor: pointer; margin-top: 10px; transition: all 0.15s;
+}
+.btn-secondary:active { background: var(--orange-pale2); }
+
+/* CART */
+.cart-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 0; border-bottom: 1px solid rgba(255,107,0,0.09);
+}
+.cart-item-img {
+  width: 54px; height: 54px; border-radius: 12px;
+  object-fit: cover; flex-shrink: 0; background: var(--orange-pale);
+}
+.cart-item-info { flex: 1; min-width: 0; }
+.cart-item-name { font-size: 13px; font-weight: 800; color: var(--brown); line-height: 1.3; margin-bottom: 2px; }
+.cart-item-price { font-size: 13px; color: var(--orange); font-weight: 900; }
+.qty-ctrl { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.qty-btn {
+  background: var(--orange-pale); border: none; border-radius: 8px;
+  width: 30px; height: 30px; font-size: 18px; font-weight: 900;
+  color: var(--orange); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s;
+}
+.qty-btn:active { background: var(--orange); color: white; }
+.qty-num { font-size: 15px; font-weight: 900; min-width: 20px; text-align: center; }
+.cart-total-box {
+  background: linear-gradient(135deg, var(--orange-pale), var(--orange-pale2));
+  border-radius: 16px; padding: 15px 18px;
+  display: flex; align-items: center; justify-content: space-between;
+  margin: 16px 0 14px; border: 1px solid rgba(255,107,0,0.15);
+}
+.cart-total-box .total-label { font-size: 14px; font-weight: 700; color: var(--brown); }
+.cart-total-box .total-items { font-size: 11px; color: var(--gray); }
+.cart-total-box .total-sum { font-size: 26px; font-weight: 900; color: var(--orange); }
+.empty-cart { text-align: center; padding: 44px 0; color: var(--gray); }
+.empty-cart .empty-icon { font-size: 52px; margin-bottom: 12px; display: block; }
+.empty-cart p { font-size: 14px; font-weight: 600; }
+.saving-indicator {
+  text-align: center; font-size: 12px; color: var(--orange);
+  font-weight: 700; padding: 8px; display: none;
+}
+.saving-indicator.visible { display: block; }
+
+/* ORDER SUCCESS */
+.success-screen { text-align: center; padding: 20px 0 10px; }
+.success-icon { font-size: 60px; margin-bottom: 14px; animation: bounce 0.5s ease; }
+@keyframes bounce { 0%{transform:scale(0)} 60%{transform:scale(1.2)} 100%{transform:scale(1)} }
+.success-title { font-family: 'Playfair Display', serif; font-size: 24px; color: var(--brown); margin-bottom: 8px; }
+.success-sub { font-size: 14px; color: var(--gray); line-height: 1.6; }
+.order-num { font-size: 13px; font-weight: 800; color: var(--orange); margin-top: 10px; }
+
+/* TOAST */
+.toast {
+  position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+  background: #1a1a1a; color: white; padding: 11px 22px;
+  border-radius: 50px; font-size: 13px; font-weight: 700;
+  z-index: 999; white-space: nowrap;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.3);
+  animation: toastAnim 2.8s forwards;
+  pointer-events: none;
+}
+@keyframes toastAnim {
+  0%{opacity:0;transform:translateX(-50%) translateY(14px)}
+  15%{opacity:1;transform:translateX(-50%) translateY(0)}
+  75%{opacity:1}
+  100%{opacity:0;transform:translateX(-50%) translateY(-4px)}
+}
+
+/* OFFLINE BAR */
+.offline-bar {
+  background: #e53935; color: white;
+  text-align: center; font-size: 12px; font-weight: 700;
+  padding: 6px; display: none;
+}
+.offline-bar.show { display: block; }
+
+@media (max-width: 320px) {
+  .menu-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .card-img-wrap img { height: 110px; }
+}
+</style>
+</head>
+<body>
+
+<!-- OFFLINE BAR -->
+<div class="offline-bar" id="offline-bar">📵 Нет соединения — показываем кэш</div>
+
+<!-- HEADER -->
+<header>
+  <div class="logo-wrap">
+    <div class="logo-icon">🍕</div>
+    <div>
+      <div class="logo-name">Аппетито</div>
+      <div class="logo-tagline">Ресторан · Доставка</div>
+    </div>
+  </div>
+  <button class="cart-btn" onclick="openModal('cart-modal')">
+    🛒 <span class="cart-count" id="cart-count">0</span>
+  </button>
+</header>
+
+<!-- CATEGORIES -->
+<div class="cats-wrap">
+  <div class="categories" id="cats-bar">
+    <button class="cat-btn active" onclick="filterCat('all',this)">🍽️ Всё</button>
+    <button class="cat-btn" onclick="filterCat('pizza',this)">🍕 Пицца</button>
+    <button class="cat-btn" onclick="filterCat('drinks',this)">🥤 Напитки</button>
+    <button class="cat-btn" onclick="filterCat('fastfood',this)">🍔 Фаст-фуд</button>
+    <button class="cat-btn" onclick="filterCat('rolls',this)">🍣 Роллы</button>
+    <button class="cat-btn" onclick="filterCat('desserts',this)">🍰 Десерты</button>
+    <button class="cat-btn" onclick="filterCat('grill',this)">🔥 Мангал</button>
+  </div>
+</div>
+
+<!-- USER AREA -->
+<div id="user-area"></div>
+
+<!-- MENU SECTION -->
+<div class="menu-section" id="menu-section">
+  <div class="section-title" id="section-title">🍽️ Всё меню</div>
+  <div id="menu-content">
+    <div class="loader-wrap">
+      <div class="loader"></div>
+      <div class="loader-text">Загружаем меню...</div>
+    </div>
+  </div>
+</div>
+
+<!-- REGISTRATION MODAL -->
+<div class="modal-overlay" id="reg-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title">👤 Ваши данные</div>
+      <button class="modal-close" onclick="closeModal('reg-modal')">×</button>
+    </div>
+    <div class="form-group">
+      <label>Имя</label>
+      <input type="text" id="inp-name" placeholder="Иван Петров" autocomplete="name">
+    </div>
+    <div class="form-group">
+      <label>Телефон</label>
+      <input type="tel" id="inp-phone" placeholder="+7 (___) ___-__-__" autocomplete="tel">
+      <div class="form-hint">Для связи при доставке</div>
+    </div>
+    <button class="btn-primary" id="reg-btn" onclick="register()">
+      Сохранить ›
+    </button>
+  </div>
+</div>
+
+<!-- CART MODAL -->
+<div class="modal-overlay" id="cart-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title">🛒 Корзина</div>
+      <button class="modal-close" onclick="closeModal('cart-modal')">×</button>
+    </div>
+    <div id="cart-content"></div>
+  </div>
+</div>
+
+<!-- ===================== SCRIPT ===================== -->
+<script>
+/* ======================================================
+   ⚙️  КОНФИГУРАЦИЯ — замените своими данными из Supabase
+   ====================================================== */
+const SUPABASE_URL = 'https://vlknndodarexaunsdfqz.supabase.co';   // ← ваш Project URL
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZsa25uZG9kYXJleGF1bnNkZnF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0NzQzMTAsImV4cCI6MjA4ODA1MDMxMH0.6rTlLMOS-ZvX2c7YVpSKdjNLtuT77DYQu1e1_Rhk-5I';       // ← ваш anon key
+const WHATSAPP_NUMBER = '79899252222';                          // ← номер WhatsApp ресторана
+
+/* ======================================================
+   INIT SUPABASE
+   ====================================================== */
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+/* ======================================================
+   STATE
+   ====================================================== */
+let menuData = [];
+let cart = {};
+let currentCat = 'all';
+let user = JSON.parse(localStorage.getItem('appetito_user') || 'null');
+
+const catTitles = {
+  all:'🍽️ Всё меню', pizza:'🍕 Пицца', drinks:'🥤 Напитки',
+  fastfood:'🍔 Фаст-фуд', rolls:'🍣 Роллы', desserts:'🍰 Десерты', grill:'🔥 Мангал'
+};
+
+/* ======================================================
+   LOAD MENU FROM SUPABASE
+   ====================================================== */
+async function loadMenu() {
+  showLoader();
+  try {
+    const { data, error } = await db
+      .from('menu_items')
+      .select('*')
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true });
+
+    if (error) throw error;
+    menuData = data || [];
+
+    // Кэшируем меню локально для офлайн-режима
+    localStorage.setItem('appetito_menu_cache', JSON.stringify(menuData));
+    renderMenu(currentCat);
+  } catch (err) {
+    console.error('Ошибка загрузки меню:', err);
+    // Пытаемся загрузить из кэша
+    const cached = localStorage.getItem('appetito_menu_cache');
+    if (cached) {
+      menuData = JSON.parse(cached);
+      renderMenu(currentCat);
+      showToast('⚠️ Показываем кэшированное меню');
+    } else {
+      // Если нет кэша и нет подключения — показываем демо-данные
+      menuData = getDemoMenu();
+      renderMenu(currentCat);
+      showError();
+    }
+  }
+}
+
+/* ======================================================
+   DEMO DATA (fallback когда Supabase не подключён)
+   ====================================================== */
+function getDemoMenu() {
+  return [
+    {id:1,category:'pizza',name:'Маргарита',description:'Томатный соус, моцарелла, базилик',price:590,badge:'',image_url:'https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=400&q=80',sort_order:1,is_active:true},
+    {id:2,category:'pizza',name:'Пепперони',description:'Томатный соус, моцарелла, пепперони',price:690,badge:'🔥',image_url:'https://images.unsplash.com/photo-1628840042765-356cda07504e?w=400&q=80',sort_order:2,is_active:true},
+    {id:3,category:'pizza',name:'4 Сыра',description:'Моцарелла, горгонзола, пармезан, чеддер',price:750,badge:'',image_url:'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400&q=80',sort_order:3,is_active:true},
+    {id:4,category:'pizza',name:'BBQ Курица',description:'Соус BBQ, курица, лук, моцарелла',price:720,badge:'NEW',image_url:'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&q=80',sort_order:4,is_active:true},
+    {id:5,category:'drinks',name:'Лимонад',description:'Свежий лимон, мята, газировка',price:220,badge:'',image_url:'https://images.unsplash.com/photo-1621263764928-df1444c5e859?w=400&q=80',sort_order:5,is_active:true},
+    {id:6,category:'drinks',name:'Свежий сок',description:'Апельсин или яблоко, 400мл',price:280,badge:'',image_url:'https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=400&q=80',sort_order:6,is_active:true},
+    {id:7,category:'drinks',name:'Милкшейк',description:'Клубника / шоколад / ваниль',price:320,badge:'🔥',image_url:'https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=400&q=80',sort_order:7,is_active:true},
+    {id:8,category:'drinks',name:'Капучино',description:'Двойной эспрессо со вспененным молоком',price:250,badge:'',image_url:'https://images.unsplash.com/photo-1593443320739-77f74596d0e7?w=400&q=80',sort_order:8,is_active:true},
+    {id:9,category:'fastfood',name:'Бургер Classic',description:'Говяжья котлета, листья салата, томат, сыр',price:480,badge:'🔥',image_url:'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&q=80',sort_order:9,is_active:true},
+    {id:10,category:'fastfood',name:'Куриный бургер',description:'Хрустящая курица, соус, салат',price:440,badge:'',image_url:'https://images.unsplash.com/photo-1606755962773-d324e0a13086?w=400&q=80',sort_order:10,is_active:true},
+    {id:11,category:'fastfood',name:'Картофель фри',description:'Хрустящий картофель с соусом на выбор',price:180,badge:'',image_url:'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=400&q=80',sort_order:11,is_active:true},
+    {id:12,category:'fastfood',name:'Хот-дог',description:'Сосиска, горчица, кетчуп, лук',price:220,badge:'',image_url:'https://images.unsplash.com/photo-1612392062422-78d6c8cc99dc?w=400&q=80',sort_order:12,is_active:true},
+    {id:13,category:'rolls',name:'Филадельфия',description:'Лосось, сыр, огурец, авокадо',price:650,badge:'🔥',image_url:'https://images.unsplash.com/photo-1617196034183-421b4040ed20?w=400&q=80',sort_order:13,is_active:true},
+    {id:14,category:'rolls',name:'Калифорния',description:'Краб, авокадо, огурец, икра',price:580,badge:'',image_url:'https://images.unsplash.com/photo-1611143669185-af224c5e3252?w=400&q=80',sort_order:14,is_active:true},
+    {id:15,category:'rolls',name:'Дракон',description:'Угорь, авокадо, темпура, соус',price:720,badge:'NEW',image_url:'https://images.unsplash.com/photo-1553621042-f6e147245754?w=400&q=80',sort_order:15,is_active:true},
+    {id:16,category:'rolls',name:'Том Ям',description:'Тигровые креветки, остро-кислый соус',price:690,badge:'',image_url:'https://images.unsplash.com/photo-1617196034738-26c5f7c977ce?w=400&q=80',sort_order:16,is_active:true},
+    {id:17,category:'desserts',name:'Тирамису',description:'Классический итальянский десерт с маскарпоне',price:350,badge:'',image_url:'https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?w=400&q=80',sort_order:17,is_active:true},
+    {id:18,category:'desserts',name:'Чизкейк',description:'Нью-Йорк, с клубничным соусом',price:380,badge:'🔥',image_url:'https://images.unsplash.com/photo-1533134242443-d4fd215305ad?w=400&q=80',sort_order:18,is_active:true},
+    {id:19,category:'desserts',name:'Панна-котта',description:'Ванильная с малиновым кули',price:320,badge:'',image_url:'https://images.unsplash.com/photo-1488477181946-6428a0291777?w=400&q=80',sort_order:19,is_active:true},
+    {id:20,category:'desserts',name:'Мороженое',description:'Три шарика на выбор, вафельный рожок',price:250,badge:'',image_url:'https://images.unsplash.com/photo-1501443762994-82bd5dace89a?w=400&q=80',sort_order:20,is_active:true},
+    {id:21,category:'grill',name:'Шашлык из ягнёнка',description:'Маринованное мясо на углях, соус, лаваш',price:890,badge:'🔥',image_url:'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400&q=80',sort_order:21,is_active:true},
+    {id:22,category:'grill',name:'Куриные крылья',description:'Острые, с соусом BBQ',price:520,badge:'',image_url:'https://images.unsplash.com/photo-1527477396000-e27163b481c2?w=400&q=80',sort_order:22,is_active:true},
+    {id:23,category:'grill',name:'Рёбра BBQ',description:'Свиные рёбрышки в авторском маринаде',price:950,badge:'NEW',image_url:'https://images.unsplash.com/photo-1544025162-d76694265947?w=400&q=80',sort_order:23,is_active:true},
+    {id:24,category:'grill',name:'Стейк',description:'Ribeye 250г, средняя прожарка',price:1200,badge:'',image_url:'https://images.unsplash.com/photo-1558030006-450675393462?w=400&q=80',sort_order:24,is_active:true},
+  ];
+}
+
+/* ======================================================
+   RENDER MENU
+   ====================================================== */
+function renderMenu(cat) {
+  const items = cat === 'all' ? menuData : menuData.filter(i => i.category === cat);
+  document.getElementById('section-title').textContent = catTitles[cat] || '🍽️ Меню';
+
+  if (!items.length) {
+    document.getElementById('menu-content').innerHTML = `
+      <div class="empty-cart">
+        <span class="empty-icon">🍽️</span>
+        <p>В этой категории пока пусто</p>
+      </div>`;
+    return;
+  }
+
+  document.getElementById('menu-content').innerHTML = `
+    <div class="menu-grid">
+      ${items.map(item => {
+        const inCart = cart[item.id] ? cart[item.id].qty : 0;
+        const badgeClass = item.badge === '🔥' ? 'hot' : 'new';
+        return `
+        <div class="menu-card" onclick="addToCart(${item.id})">
+          <div class="card-img-wrap">
+            <img src="${item.image_url || ''}" alt="${item.name}" loading="lazy"
+              onerror="this.src='data:image/svg+xml,<svg xmlns=\\'http://www.w3.org/2000/svg\\'><rect fill=\\'%23FFE8CC\\' width=\\'100%\\' height=\\'100%\\'/></svg>'">
+            ${item.badge ? `<div class="badge-new ${badgeClass}">${item.badge === '🔥' ? '🔥 Хит' : item.badge}</div>` : ''}
+            ${inCart > 0 ? `<div class="in-cart-badge">${inCart}</div>` : ''}
+          </div>
+          <div class="card-body">
+            <div class="card-name">${item.name}</div>
+            <div class="card-desc">${item.description || ''}</div>
+            <div class="card-footer">
+              <div class="card-price">${item.price} ₽</div>
+              <button class="add-btn" onclick="event.stopPropagation();addToCart(${item.id})">+</button>
+            </div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+function showLoader() {
+  document.getElementById('menu-content').innerHTML = `
+    <div class="loader-wrap">
+      <div class="loader"></div>
+      <div class="loader-text">Загружаем меню...</div>
+    </div>`;
+}
+
+function showError() {
+  // Показываем демо-данные, просто тост что Supabase не подключён
+  showToast('ℹ️ Режим демонстрации — подключите Supabase');
+}
+
+/* ======================================================
+   FILTER CATEGORIES
+   ====================================================== */
+function filterCat(cat, btn) {
+  currentCat = cat;
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderMenu(cat);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ======================================================
+   CART
+   ====================================================== */
+function addToCart(id) {
+  const item = menuData.find(i => i.id === id);
+  if (!item) return;
+  if (!cart[id]) cart[id] = { ...item, qty: 0 };
+  cart[id].qty++;
+  updateCartUI();
+  renderMenu(currentCat); // обновляем badge на карточке
+}
+
+function changeQty(id, delta) {
+  if (!cart[id]) return;
+  cart[id].qty += delta;
+  if (cart[id].qty <= 0) delete cart[id];
+  updateCartUI();
+  renderCart();
+  renderMenu(currentCat);
+}
+
+function updateCartUI() {
+  const total = Object.values(cart).reduce((s, i) => s + i.qty, 0);
+  const el = document.getElementById('cart-count');
+  el.textContent = total;
+  el.classList.add('bump');
+  setTimeout(() => el.classList.remove('bump'), 200);
+}
+
+/* ======================================================
+   RENDER CART
+   ====================================================== */
+function renderCart() {
+  const items = Object.values(cart);
+  const el = document.getElementById('cart-content');
+
+  if (!items.length) {
+    el.innerHTML = `
+      <div class="empty-cart">
+        <span class="empty-icon">🛒</span>
+        <p>Корзина пуста<br><small style="color:#bbb">Добавьте блюда из меню</small></p>
+      </div>`;
+    return;
+  }
+
+  const total = items.reduce((s, i) => s + i.price * i.qty, 0);
+  const totalQty = items.reduce((s, i) => s + i.qty, 0);
+
+  el.innerHTML = `
+    ${items.map(item => `
+      <div class="cart-item">
+        <img class="cart-item-img" src="${item.image_url || ''}" alt="${item.name}" loading="lazy">
+        <div class="cart-item-info">
+          <div class="cart-item-name">${item.name}</div>
+          <div class="cart-item-price">${item.price * item.qty} ₽</div>
+        </div>
+        <div class="qty-ctrl">
+          <button class="qty-btn" onclick="changeQty(${item.id},-1)">−</button>
+          <div class="qty-num">${item.qty}</div>
+          <button class="qty-btn" onclick="changeQty(${item.id},1)">+</button>
+        </div>
+      </div>
+    `).join('')}
+    <div class="cart-total-box">
+      <div>
+        <div class="total-label">Итого</div>
+        <div class="total-items">${totalQty} позиц.</div>
+      </div>
+      <div class="total-sum">${total} ₽</div>
+    </div>
+    <div class="saving-indicator" id="saving-indicator">⏳ Сохраняем заказ...</div>
+    <button class="btn-primary" id="order-btn" onclick="submitOrder()">
+      📲 Оформить и отправить в WhatsApp
+    </button>
+    <button class="btn-secondary" onclick="closeModal('cart-modal')">Продолжить выбор</button>
+  `;
+}
+
+/* ======================================================
+   REGISTER
+   ====================================================== */
+async function register() {
+  const name = document.getElementById('inp-name').value.trim();
+  const phone = document.getElementById('inp-phone').value.trim();
+  if (!name) { showToast('⚠️ Введите имя'); return; }
+  if (phone.replace(/\D/g,'').length < 10) { showToast('⚠️ Введите корректный телефон'); return; }
+
+  const btn = document.getElementById('reg-btn');
+  btn.disabled = true; btn.textContent = 'Сохраняем...';
+
+  // Сохраняем клиента в Supabase
+  try {
+    const { data, error } = await db
+      .from('customers')
+      .upsert({ name, phone }, { onConflict: 'phone' })
+      .select()
+      .single();
+    if (error) throw error;
+    user = { id: data.id, name, phone };
+  } catch (e) {
+    // Если Supabase не подключён — сохраняем только локально
+    user = { name, phone };
+  }
+
+  localStorage.setItem('appetito_user', JSON.stringify(user));
+  closeModal('reg-modal');
+  renderUserArea();
+  showToast(`👋 Привет, ${name}!`);
+  btn.disabled = false; btn.textContent = 'Сохранить ›';
+}
+
+/* ======================================================
+   SUBMIT ORDER
+   ====================================================== */
+async function submitOrder() {
+  if (!user) {
+    closeModal('cart-modal');
+    openModal('reg-modal');
+    showToast('Сначала введите ваши данные');
+    return;
+  }
+
+  const items = Object.values(cart);
+  if (!items.length) return;
+
+  const total = items.reduce((s, i) => s + i.price * i.qty, 0);
+  const btn = document.getElementById('order-btn');
+  const savingEl = document.getElementById('saving-indicator');
+
+  btn.disabled = true; btn.textContent = '⏳ Оформляем...';
+  if (savingEl) savingEl.classList.add('visible');
+
+  // Сохраняем заказ в Supabase
+  let orderNum = Math.floor(Math.random() * 9000) + 1000;
+  try {
+    const { data, error } = await db
+      .from('orders')
+      .insert({
+        customer_id: user.id || null,
+        customer_name: user.name,
+        customer_phone: user.phone,
+        items: items.map(i => ({ id: i.id, name: i.name, price: i.price, qty: i.qty })),
+        total,
+        status: 'new'
+      })
+      .select()
+      .single();
+    if (!error && data) orderNum = data.id;
+  } catch (e) {
+    console.log('Supabase order save failed, continuing with WhatsApp');
+  }
+
+  // Формируем сообщение для WhatsApp
+  let msg = `🍽️ *НОВЫЙ ЗАКАЗ #${orderNum} — Аппетито*\n\n`;
+  msg += `👤 *${user.name}*\n📞 ${user.phone}\n\n`;
+  msg += `*Состав:*\n`;
+  items.forEach(i => { msg += `• ${i.name} × ${i.qty} = ${i.price * i.qty} ₽\n`; });
+  msg += `\n💰 *ИТОГО: ${total} ₽*\n⏰ ${new Date().toLocaleTimeString('ru', {hour:'2-digit',minute:'2-digit'})}`;
+
+  const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
+
+  // Показываем экран успеха
+  document.getElementById('cart-content').innerHTML = `
+    <div class="success-screen">
+      <div class="success-icon">🎉</div>
+      <div class="success-title">Заказ оформлен!</div>
+      <p class="success-sub">Сейчас откроется WhatsApp<br>для подтверждения заказа</p>
+      <div class="order-num">Заказ #${orderNum}</div>
+      <br>
+      <button class="btn-primary" onclick="window.open('${url}','_blank')">
+        📱 Открыть WhatsApp
+      </button>
+      <button class="btn-secondary" onclick="clearCartAndClose()">Закрыть</button>
+    </div>`;
+
+  // Открываем WhatsApp
+  setTimeout(() => window.open(url, '_blank'), 500);
+
+  cart = {};
+  updateCartUI();
+  renderMenu(currentCat);
+}
+
+function clearCartAndClose() {
+  closeModal('cart-modal');
+}
+
+/* ======================================================
+   USER AREA
+   ====================================================== */
+function renderUserArea() {
+  const el = document.getElementById('user-area');
+  if (user) {
+    el.innerHTML = `
+      <div class="user-chip">
+        <span class="chip-icon">👤</span>
+        <div>
+          <div class="chip-name">${user.name}</div>
+          <div class="chip-phone">${user.phone}</div>
+        </div>
+        <button class="chip-edit" onclick="editUser()">Изменить</button>
+      </div>`;
+  } else {
+    el.innerHTML = `
+      <div class="reg-banner" onclick="openModal('reg-modal')">
+        <div class="reg-banner-icon">👋</div>
+        <div class="reg-banner-text">
+          <strong>Войдите для оформления заказа</strong>
+          <span>Введите имя и телефон</span>
+        </div>
+        <div class="reg-banner-arrow">›</div>
+      </div>`;
+  }
+}
+
+function editUser() {
+  if (user) {
+    document.getElementById('inp-name').value = user.name;
+    document.getElementById('inp-phone').value = user.phone;
+  }
+  openModal('reg-modal');
+}
+
+/* ======================================================
+   MODALS
+   ====================================================== */
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+  if (id === 'cart-modal') renderCart();
+  document.body.style.overflow = 'hidden';
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+  document.body.style.overflow = '';
+}
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', e => { if (e.target === el) { closeModal(el.id); } });
+});
+
+/* ======================================================
+   TOAST
+   ====================================================== */
+function showToast(msg) {
+  document.querySelectorAll('.toast').forEach(t => t.remove());
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2900);
+}
+
+/* ======================================================
+   PHONE MASK
+   ====================================================== */
+document.getElementById('inp-phone').addEventListener('input', function(e) {
+  let v = e.target.value.replace(/\D/g,'');
+  if (v.startsWith('8')) v = '7' + v.slice(1);
+  if (v && !v.startsWith('7')) v = '7' + v;
+  v = v.slice(0, 11);
+  let r = '';
+  if (v.length > 0) r = '+7';
+  if (v.length > 1) r += ' (' + v.slice(1, 4);
+  if (v.length >= 4) r += ') ' + v.slice(4, 7);
+  if (v.length >= 7) r += '-' + v.slice(7, 9);
+  if (v.length >= 9) r += '-' + v.slice(9, 11);
+  e.target.value = r;
+});
+
+/* ======================================================
+   OFFLINE DETECTION
+   ====================================================== */
+function checkOnline() {
+  document.getElementById('offline-bar').classList.toggle('show', !navigator.onLine);
+}
+window.addEventListener('online', checkOnline);
+window.addEventListener('offline', checkOnline);
+
+/* ======================================================
+   INIT
+   ====================================================== */
+renderUserArea();
+loadMenu();
+checkOnline();
+</script>
+</body>
+</html>
